@@ -9,10 +9,10 @@ export const NavBar: React.FC<NavBarProps> = ({}) => {
   const [{ data, fetching }] = useMeQuery();
   let body = null;
 
-  // data is loading
+  // data is loading, return nothing
   if (fetching) {
   }
-  // user not logged in
+  // user not logged in, return login / register buttons
   else if (!data?.me) {
     body = (
       <>
@@ -27,7 +27,7 @@ export const NavBar: React.FC<NavBarProps> = ({}) => {
       </>
     );
   }
-  // user is logged in
+  // user is logged in, return username and logout button
   else {
     body = (
       <Flex>
