@@ -11,9 +11,9 @@ import { createUrqlClient } from "../../utils/createUrqlClient";
 import { toErrorMap } from "../../utils/toErrorMap";
 import NextLink from "next/link";
 
-const ChangePassword: NextPage<{ token: string }> = ({ token }) => {
-  const [, changePassword] = useChangePasswordMutation();
+const ChangePassword: NextPage = () => {
   const router = useRouter();
+  const [, changePassword] = useChangePasswordMutation();
   const [tokenError, setTokenError] = useState("");
   return (
     <Wrapper>
@@ -22,7 +22,8 @@ const ChangePassword: NextPage<{ token: string }> = ({ token }) => {
         onSubmit={async (values, { setErrors }) => {
           const response = await changePassword({
             newPassword: values.newPassword,
-            token,
+            token:
+              typeof router.query.token === "string" ? router.query.token : "",
           });
           if (response.data?.ChangePassword.errors) {
             const errorMap = toErrorMap(response.data.ChangePassword.errors);
@@ -46,7 +47,9 @@ const ChangePassword: NextPage<{ token: string }> = ({ token }) => {
             ></InputField>
             {tokenError ? (
               <Flex>
-                <Box mr={2} color="red">{tokenError}</Box>
+                <Box mr={2} color="red">
+                  {tokenError}
+                </Box>
                 <NextLink href="/forgot-password">
                   <Link>Click here to get a new one</Link>
                 </NextLink>
@@ -65,14 +68,6 @@ const ChangePassword: NextPage<{ token: string }> = ({ token }) => {
       </Formik>
     </Wrapper>
   );
-};
-
-// getInitialProps is nextJS fn to get any query parameters
-// and pass it to our ChangePassword component
-ChangePassword.getInitialProps = ({ query }) => {
-  return {
-    token: query.token as string,
-  };
 };
 
 export default withUrqlClient(createUrqlClient)(ChangePassword);
