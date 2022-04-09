@@ -42,7 +42,6 @@ const cursorPagination = (): Resolver => {
     const { parentKey: entityKey, fieldName } = info;
     // inspectFields retrives *all known fields* for the given entityKey (Query) in the cache
     const allFields = cache.inspectFields(entityKey);
-    console.log("allFields: ", allFields);
     // there may be fields on the entityKey we don't want so we filter that off
     const fieldInfos = allFields.filter((info) => info.fieldName === fieldName);
 
@@ -54,20 +53,33 @@ const cursorPagination = (): Resolver => {
 
     // Generate fieldKey by combining fieldName + fieldArgs, e.g. `posts({"limit":10})`
     const fieldKey = `${fieldName}(${stringifyVariables(fieldArgs)})`;
-    // Attempt to retrieve our data. If it is not in the cache, then we know there is a partial return. 
+    // Attempt to retrieve our data. If it is not in the cache, then we know there is a partial return.
     const isItInTheCache = cache.resolve(entityKey, fieldKey);
     // If info.partial is true (isItInTheCache is not null) then we are indicating data is uncached and missing
     info.partial = !isItInTheCache;
-    // Loop through fieldInfos and retrieve its data, pushing it to results array
+    // Default hasMore to true (we expect that there will be more posts to retrieve)
+    let hasMore = true;
+    // Loop through fieldInfos and retrieve its data
     const results: string[] = [];
     fieldInfos.forEach((fi) => {
       // DEPRECIATED: const data = cache.resolveFieldByKey(entityKey, fi.fieldKey) as string[];
       // resolve retrieves value of the field on the provided entity
-      const data = cache.resolve(entityKey, fi.fieldKey) as string[];
+      const key = cache.resolve(entityKey, fi.fieldKey) as string;
+      const data = cache.resolve(key, "posts") as string[];
+      // Check if the query has returned hasMore as true
+      const _hasMore = cache.resolve(key, "hasMore");
+      if (!_hasMore) {
+        hasMore = _hasMore as boolean;
+      }
+      // Push the returning data into our results array
       results.push(...data);
     });
-    // Return array of posts
-    return results;
+    // Return object of posts
+    return {
+      __typename: "PaginatedPosts",
+      hasMore,
+      posts: results,
+    };
   };
 };
 
@@ -82,6 +94,9 @@ export const createUrqlClient = (ssrExchange: any) => ({
   exchanges: [
     dedupExchange,
     cacheExchange({
+      keys: {
+        PaginatedPosts: () => null,
+      },
       resolvers: {
         Query: {
           posts: cursorPagination(),
