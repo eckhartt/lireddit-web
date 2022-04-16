@@ -104,6 +104,19 @@ export const createUrqlClient = (ssrExchange: any) => ({
       },
       updates: {
         Mutation: {
+          // createPost cache updater
+          // When createPost runs this will invalidate the cache of the post query,
+          // forcing a fresh query when the home page loads to show the new post
+          createPost: (_result, args, cache, info) => {
+            const allFields = cache.inspectFields("Query");
+            const fieldInfos = allFields.filter(
+              (info) => info.fieldName === "posts"
+            );
+            fieldInfos.forEach((fi) => {
+              cache.invalidate("Query", "posts", fi.arguments || {});
+            });
+          },
+          // logout cache updater
           // Every time logout mutation runs this will update
           // the cache of the MeQuery with null user data.
           logout: (_result, args, cache, info) => {
@@ -114,6 +127,7 @@ export const createUrqlClient = (ssrExchange: any) => ({
               () => ({ me: null })
             );
           },
+          // login cache updater
           // Every time login mutation runs this will update
           // the cache of the MeQuery with new user data.
           login: (_result, args, cache, info) => {
@@ -134,6 +148,7 @@ export const createUrqlClient = (ssrExchange: any) => ({
               }
             );
           },
+          // register cache updater
           // Every time register mutation runs this will update
           // the cache of the MeQuery with new user data.
           register: (_result, args, cache, info) => {
