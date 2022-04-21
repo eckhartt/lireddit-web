@@ -1,4 +1,4 @@
-import { cacheExchange, Resolver } from "@urql/exchange-graphcache";
+import { cacheExchange, Resolver, Cache } from "@urql/exchange-graphcache";
 import Router from "next/router";
 import {
   dedupExchange,
@@ -87,6 +87,17 @@ const cursorPagination = (): Resolver => {
   };
 };
 
+// invalidateAllPosts clears the cache 
+// runs on every createPost/login to enforce current user data 
+//
+function invalidateAllPosts(cache: Cache) {
+  const allFields = cache.inspectFields("Query");
+  const fieldInfos = allFields.filter((info) => info.fieldName === "posts");
+  fieldInfos.forEach((fi) => {
+    cache.invalidate("Query", "posts", fi.arguments || {});
+  });
+}
+
 // createUrqlClient
 //
 //
@@ -159,13 +170,14 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
             // When createPost runs this will invalidate the cache of the post query,
             // forcing a fresh query when the home page loads to show the new post
             createPost: (_result, args, cache, info) => {
-              const allFields = cache.inspectFields("Query");
-              const fieldInfos = allFields.filter(
-                (info) => info.fieldName === "posts"
-              );
-              fieldInfos.forEach((fi) => {
-                cache.invalidate("Query", "posts", fi.arguments || {});
-              });
+              invalidateAllPosts(cache);
+              // const allFields = cache.inspectFields("Query");
+              // const fieldInfos = allFields.filter(
+              //   (info) => info.fieldName === "posts"
+              // );
+              // fieldInfos.forEach((fi) => {
+              //   cache.invalidate("Query", "posts", fi.arguments || {});
+              // });
             },
             // logout cache updater
             // Every time logout mutation runs this will update
@@ -198,6 +210,7 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
                   }
                 }
               );
+              invalidateAllPosts(cache);
             },
             // register cache updater
             // Every time register mutation runs this will update
