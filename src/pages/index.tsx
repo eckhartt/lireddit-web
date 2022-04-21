@@ -26,13 +26,18 @@ const Index = () => {
   // useMeQuery
 
   // usePostsQuery
-  const [{ data, fetching }] = usePostsQuery({
+  const [{ data, error, fetching }] = usePostsQuery({
     variables,
   });
 
   // Query has finished and data was not obtained
   if (!fetching && !data) {
-    return <div>query failed</div>;
+    return (
+      <Box>
+        <div>query failed: </div>
+        <div>{error?.message}</div>
+      </Box>
+    );
   }
   // Query has finished and data was obtained
   return (
